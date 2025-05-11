@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Duct Fan Battery Indicator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        
+        .gauge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #4ade80 0% 20%,
+                #a3e635 20% 40%,
+                #facc15 40% 60%,
+                #f97316 60% 80%,
+                #ef4444 80% 100%
+            );
+            mask: radial-gradient(transparent 50%, #000 51%);
+            -webkit-mask: radial-gradient(transparent 50%, #000 51%);
+        }
+        
+        .gauge-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        
+        .low-battery {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        .fan-icon {
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl p-8 max-w-4xl w-full">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Electric Duct Fan Battery Monitoring</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Main Battery Gauge -->
+            <div class="bg-gray-50 rounded-lg p-6 shadow-inner">
+                <h2 class="text-xl font-semibold text-center mb-4 text-gray-700">Main Battery</h2>
+                <div class="gauge-container">
+                    <div class="gauge" id="mainGauge"></div>
+                    <div class="gauge-center" id="mainGaugeCenter">
+                        <span class="text-4xl font-bold" id="mainPercentage">75%</span>
+                        <span class="text-sm text-gray-500 mt-1">Capacity</span>
+                        <i class="fas fa-battery-three-quarters text-2xl mt-2 text-green-500" id="mainBatteryIcon"></i>
+                    </div>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <p class="text-sm text-blue-600">Voltage</p>
+                        <p class="text-xl font-mono" id="mainVoltage">24.6V</p>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <p class="text-sm text-purple-600">Current</p>
+                        <p class="text-xl font-mono" id="mainCurrent">2.3A</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Backup Battery Gauge -->
+            <div class="bg-gray-50 rounded-lg p-6 shadow-inner">
+                <h2 class="text-xl font-semibold text-center mb-4 text-gray-700">Backup Battery</h2>
+                <div class="gauge-container">
+                    <div class="gauge" id="backupGauge"></div>
+                    <div class="gauge-center" id="backupGaugeCenter">
+                        <span class="text-4xl font-bold" id="backupPercentage">35%</span>
+                        <span class="text-sm text-gray-500 mt-1">Capacity</span>
+                        <i class="fas fa-battery-quarter text-2xl mt-2 text-yellow-500" id="backupBatteryIcon"></i>
+                    </div>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <p class="text-sm text-blue-600">Voltage</p>
+                        <p class="text-xl font-mono" id="backupVoltage">12.1V</p>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <p class="text-sm text-purple-600">Current</p>
+                        <p class="text-xl font-mono" id="backupCurrent">1.1A</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Fan Status -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6 shadow-inner">
+            <h2 class="text-xl font-semibold text-center mb-4 text-gray-700">Fan Status</h2>
+            <div class="flex flex-col items-center">
+                <div class="relative w-24 h-24 flex items-center justify-center mb-4">
+                    <i class="fas fa-fan text-5xl text-blue-500 fan-icon" id="fanIcon"></i>
+                    <div class="absolute inset-0 rounded-full border-4 border-blue-200 animate-pulse"></div>
+                </div>
+                <div class="text-center">
+                    <p class="text-lg font-medium" id="fanStatus">Running at 75% power</p>
+                    <p class="text-sm text-gray-500 mt-1" id="fanMode">Automatic speed control</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alerts -->
+        <div class="mt-6 hidden" id="alertContainer">
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-500"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700 font-medium" id="alertMessage"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Controls -->
+    <div class="mt-8 bg-white rounded-xl shadow-xl p-6 max-w-4xl w-full">
+        <h2 class="text-xl font-semibold text-center mb-6 text-gray-700">Simulation Controls</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Main Battery Level</label>
+                <input type="range" min="0" max="100" value="75" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="mainBatterySlider">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Backup Battery Level</label>
+                <input type="range" min="0" max="100" value="35" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="backupBatterySlider">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fan Speed</label>
+                <input type="range" min="0" max="100" value="75" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="fanSpeedSlider">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const mainBatterySlider = document.getElementById('mainBatterySlider');
+        const backupBatterySlider = document.getElementById('backupBatterySlider');
+        const fanSpeedSlider = document.getElementById('fanSpeedSlider');
+        
+        const mainPercentage = document.getElementById('mainPercentage');
+        const backupPercentage = document.getElementById('backupPercentage');
+        
+        const mainGaugeCenter = document.getElementById('mainGaugeCenter');
+        const backupGaugeCenter = document.getElementById('backupGaugeCenter');
+        
+        const mainBatteryIcon = document.getElementById('mainBatteryIcon');
+        const backupBatteryIcon = document.getElementById('backupBatteryIcon');
+        
+        const mainVoltage = document.getElementById('mainVoltage');
+        const mainCurrent = document.getElementById('mainCurrent');
+        const backupVoltage = document.getElementById('backupVoltage');
+        const backupCurrent = document.getElementById('backupCurrent');
+        
+        const fanIcon = document.getElementById('fanIcon');
+        const fanStatus = document.getElementById('fanStatus');
+        const fanMode = document.getElementById('fanMode');
+        
+        const alertContainer = document.getElementById('alertContainer');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        // Update functions
+        function updateMainBattery(value) {
+            mainPercentage.textContent = `${value}%`;
+            
+            // Update battery icon
+            if (value >= 80) {
+                mainBatteryIcon.className = 'fas fa-battery-full text-2xl mt-2 text-green-500';
+            } else if (value >= 60) {
+                mainBatteryIcon.className = 'fas fa-battery-three-quarters text-2xl mt-2 text-green-400';
+            } else if (value >= 40) {
+                mainBatteryIcon.className = 'fas fa-battery-half text-2xl mt-2 text-yellow-500';
+            } else if (value >= 20) {
+                mainBatteryIcon.className = 'fas fa-battery-quarter text-2xl mt-2 text-orange-500';
+            } else {
+                mainBatteryIcon.className = 'fas fa-battery-empty text-2xl mt-2 text-red-500';
+            }
+            
+            // Update voltage and current (simulated)
+            const voltage = 20 + (value * 0.08);
+            const current = 0.5 + (value * 0.03);
+            mainVoltage.textContent = `${voltage.toFixed(1)}V`;
+            mainCurrent.textContent = `${current.toFixed(1)}A`;
+            
+            // Check for low battery
+            if (value < 15) {
+                mainGaugeCenter.classList.add('low-battery');
+                showAlert(`Warning: Main battery critically low (${value}%)`);
+            } else {
+                mainGaugeCenter.classList.remove('low-battery');
+                if (value > 20) hideAlert();
+            }
+        }
+        
+        function updateBackupBattery(value) {
+            backupPercentage.textContent = `${value}%`;
+            
+            // Update battery icon
+            if (value >= 80) {
+                backupBatteryIcon.className = 'fas fa-battery-full text-2xl mt-2 text-green-500';
+            } else if (value >= 60) {
+                backupBatteryIcon.className = 'fas fa-battery-three-quarters text-2xl mt-2 text-green-400';
+            } else if (value >= 40) {
+                backupBatteryIcon.className = 'fas fa-battery-half text-2xl mt-2 text-yellow-500';
+            } else if (value >= 20) {
+                backupBatteryIcon.className = 'fas fa-battery-quarter text-2xl mt-2 text-orange-500';
+            } else {
+                backupBatteryIcon.className = 'fas fa-battery-empty text-2xl mt-2 text-red-500';
+            }
+            
+            // Update voltage and current (simulated)
+            const voltage = 10 + (value * 0.06);
+            const current = 0.3 + (value * 0.02);
+            backupVoltage.textContent = `${voltage.toFixed(1)}V`;
+            backupCurrent.textContent = `${current.toFixed(1)}A`;
+            
+            // Check for low battery
+            if (value < 15) {
+                backupGaugeCenter.classList.add('low-battery');
+                showAlert(`Warning: Backup battery critically low (${value}%)`);
+            } else {
+                backupGaugeCenter.classList.remove('low-battery');
+                if (value > 20) hideAlert();
+            }
+        }
+        
+        function updateFanSpeed(value) {
+            fanStatus.textContent = value > 0 ? `Running at ${value}% power` : 'Fan stopped';
+            
+            // Adjust fan animation speed
+            const speed = value / 100;
+            fanIcon.style.animationDuration = `${2 / speed}s`;
+            
+            // Change color based on speed
+            if (value > 80) {
+                fanIcon.className = 'fas fa-fan text-5xl text-red-500 fan-icon';
+            } else if (value > 50) {
+                fanIcon.className = 'fas fa-fan text-5xl text-orange-500 fan-icon';
+            } else if (value > 0) {
+                fanIcon.className = 'fas fa-fan text-5xl text-blue-500 fan-icon';
+            } else {
+                fanIcon.className = 'fas fa-fan text-5xl text-gray-400';
+                fanIcon.style.animation = 'none';
+            }
+            
+            // Update mode based on battery levels
+            const mainBatt = parseInt(mainBatterySlider.value);
+            const backupBatt = parseInt(backupBatterySlider.value);
+            
+            if (mainBatt < 20 && backupBatt < 20) {
+                fanMode.textContent = 'Emergency power saving mode';
+            } else if (mainBatt < 30) {
+                fanMode.textContent = 'Reduced power mode (main battery low)';
+            } else {
+                fanMode.textContent = 'Automatic speed control';
+            }
+        }
+        
+        function showAlert(message) {
+            alertMessage.textContent = message;
+            alertContainer.classList.remove('hidden');
+        }
+        
+        function hideAlert() {
+            alertContainer.classList.add('hidden');
+        }
+        
+        // Event listeners
+        mainBatterySlider.addEventListener('input', () => {
+            updateMainBattery(mainBatterySlider.value);
+        });
+        
+        backupBatterySlider.addEventListener('input', () => {
+            updateBackupBattery(backupBatterySlider.value);
+        });
+        
+        fanSpeedSlider.addEventListener('input', () => {
+            updateFanSpeed(fanSpeedSlider.value);
+        });
+        
+        // Initialize
+        updateMainBattery(mainBatterySlider.value);
+        updateBackupBattery(backupBatterySlider.value);
+        updateFanSpeed(fanSpeedSlider.value);
+        
+        // Simulate real-time changes
+        setInterval(() => {
+            // Random small fluctuations
+            const mainChange = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+            const backupChange = Math.floor(Math.random() * 3) - 1;
+            
+            let newMain = parseInt(mainBatterySlider.value) + mainChange;
+            let newBackup = parseInt(backupBatterySlider.value) + backupChange;
+            
+            // Keep within bounds
+            newMain = Math.max(0, Math.min(100, newMain));
+            newBackup = Math.max(0, Math.min(100, newBackup));
+            
+            mainBatterySlider.value = newMain;
+            backupBatterySlider.value = newBackup;
+            
+            updateMainBattery(newMain);
+            updateBackupBattery(newBackup);
+            
+            // If main battery is very low, reduce fan speed
+            if (newMain < 15 && parseInt(fanSpeedSlider.value) > 30) {
+                fanSpeedSlider.value = 30;
+                updateFanSpeed(30);
+            }
+            
+        }, 3000);
+    </script>
+</body>
+</html>
